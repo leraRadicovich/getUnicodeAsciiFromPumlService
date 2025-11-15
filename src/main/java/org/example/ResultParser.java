@@ -36,6 +36,7 @@ public class ResultParser {
                 .replaceAll("║", "")
                 .replaceAll("\\s+\\n", "\n")
                 .replaceAll("░", "")
+                .replaceAll("(?m)^(\\s*).*?(\\S.*)$", "$1$2") // Удаление лишних пробелов в начале строк
                 .trim();
     }
 
@@ -44,6 +45,7 @@ public class ResultParser {
         return block.replaceAll("║", "")
                 .replaceAll("═+", "")
                 .replaceAll("\\s+\\n", "\n")
+                .replaceAll("(?m)^\\s+", "") // Удаление пробелов в начале строк
                 .replaceAll("^Карта процесса.*?====\\s*", "") // Убираем заголовки
                 .trim();
     }
