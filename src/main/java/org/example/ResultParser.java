@@ -63,12 +63,47 @@ public class ResultParser {
         if (!diagramCode.isEmpty()) {
             Path diagramFile = resultDir.resolve(baseName + "_original.puml");
             Files.writeString(diagramFile, diagramCode);
+
+            // Обработка файла .puml
+            processPumlFile(diagramFile);
         }
 
         // Сохранение таблиц процесса
         if (!legendContent.isEmpty()) {
             Path tablesFile = resultDir.resolve(baseName + "_карта процесса.md");
             Files.writeString(tablesFile, legendContent);
+        }
+    }
+
+    // Новый метод для обработки файла .puml
+    private static void processPumlFile(Path pumlFile) throws IOException {
+        // Чтение содержимого файла .puml
+        String pumlContent = Files.readString(pumlFile);
+
+        // Поиск строки с autonumber и определение количества пробелов перед ней
+        Pattern autonumberPattern = Pattern.compile("(^\\s*)autonumber", Pattern.MULTILINE);
+        Matcher matcher = autonumberPattern.matcher(pumlContent);
+        int spacesToRemove = 0;
+
+        if (matcher.find()) {
+            spacesToRemove = matcher.group(1).length();
+        }
+
+        // Удаление пробелов из каждой строки, кроме строки @startuml
+        if (spacesToRemove > 0) {
+            StringBuilder processedContent = new StringBuilder();
+            String[] lines = pumlContent.split("\n");
+
+            for (String line : lines) {
+                if (line.trim().equals("@startuml")) {
+                    processedContent.append(line).append("\n");
+                } else {
+                    processedContent.append(line.substring(Math.min(spacesToRemove, line.length()))).append("\n");
+                }
+            }
+
+            // Сохранение изменений в файл .puml
+            Files.writeString(pumlFile, processedContent.toString());
         }
     }
 }
