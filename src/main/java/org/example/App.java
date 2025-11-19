@@ -7,23 +7,8 @@ import java.util.Scanner;
 
 public class App {
     public static void main(String[] args) {
-        Path inputPath = getInputPath(args);
-        Path baseDir = inputPath.getParent() != null ?
-                inputPath.getParent() : Paths.get("");
-
-        // Определяем значение outputLogEnabled
-        boolean outputLogEnabled = getOutputLogEnabled(args); // Дефолтное значение false
-
-        // Чтобы запустить программу с включенным логированием, используйте аргумент --log:
-        // Пример: java -jar your-application.jar --log path/to/file.puml
-
-        try (FileProcessor processor = new FileProcessor(baseDir, outputLogEnabled)) {
-            processor.process(inputPath);
-        } catch (Exception e) {
-            System.err.println("Critical error: " + e.getMessage());
-            e.printStackTrace();
-            System.exit(1);
-        }
+        // Запуск графического интерфейса
+        AppUI.main(args);
     }
 
     private static Path getInputPath(String[] args) {
