@@ -10,6 +10,7 @@ public class ResultParser {
     // Регулярные выражения для извлечения блоков из ASCII-арта
     private static final Pattern DIAGRAM_CODE_PATTERN = Pattern.compile("(@startuml.*?@enduml)", Pattern.DOTALL);
     private static final Pattern LEGEND_BLOCK_PATTERN = Pattern.compile("(?s)legend(.*?)end legend");
+    private static final Pattern AUTONUMBER_PATTERN = Pattern.compile("(^\\s*)autonumber", Pattern.MULTILINE);
 
     // Метод для извлечения исходного кода диаграммы из ASCII-арта
     public static String extractDiagramCode(String asciiContent) {
@@ -81,8 +82,7 @@ public class ResultParser {
         String pumlContent = Files.readString(pumlFile);
 
         // Поиск строки с autonumber и определение количества пробелов перед ней
-        Pattern autonumberPattern = Pattern.compile("(^\\s*)autonumber", Pattern.MULTILINE);
-        Matcher matcher = autonumberPattern.matcher(pumlContent);
+        Matcher matcher = AUTONUMBER_PATTERN.matcher(pumlContent);
         int spacesToRemove = 0;
 
         if (matcher.find()) {

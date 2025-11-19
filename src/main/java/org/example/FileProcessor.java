@@ -13,14 +13,23 @@ public class FileProcessor implements AutoCloseable {
     private static final String LOG_FILE = "processing.log";
 
     private final PlantUmlAsciiGenerator generator;
-    private final PrintWriter logger;
+    private PrintWriter logger;
     private final Path baseDir;
+    private final boolean outputLogEnabled;
 
-    public FileProcessor(Path baseDir) throws IOException {
+    /**
+     * Конструктор класса FileProcessor.
+     *
+     * @param baseDir          Базовая директория для обработки файлов.
+     * @param outputLogEnabled Флаг, определяющий, следует ли сохранять лог.
+     *                         Если true, лог сохраняется всегда.
+     *                         Если false, лог сохраняется только при возникновении ошибок.
+     * @throws IOException Если произошла ошибка при настройке логгера.
+     */
+    public FileProcessor(Path baseDir, boolean outputLogEnabled) throws IOException {
         this.baseDir = baseDir;
-        this.logger = setupLogger();
-        this.generator = new PlantUmlAsciiGenerator(logger); // Передаем логгер
-
+        this.outputLogEnabled = outputLogEnabled;
+        this.generator = new PlantUmlAsciiGenerator(null); // Изначально передаем null
     }
 
     public void process(Path inputPath) throws IOException {
@@ -38,7 +47,6 @@ public class FileProcessor implements AutoCloseable {
     }
 
     private void processDirectory(Path dir) throws IOException {
-        log("Сканирование директории: " + dir);
         try (Stream<Path> stream = Files.walk(dir)) {
             stream.filter(this::isPumlFile)
                     .forEach(this::processSingleFile);
@@ -58,6 +66,9 @@ public class FileProcessor implements AutoCloseable {
 
             // Обработка результатов
             processGeneratedFile(pumlFile, resultDir);
+
+            // Удаление временного файла
+            deleteTempFile(pumlFile, resultDir);
 
             log("Успешно обработан: " + pumlFile.getFileName());
         } catch (Exception e) {
@@ -89,26 +100,45 @@ public class FileProcessor implements AutoCloseable {
         }
     }
 
+    private void deleteTempFile(Path pumlFile, Path resultDir) throws IOException {
+        String fileName = pumlFile.getFileName().toString();
+        String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
+
+        Path tempFile = resultDir.resolve(baseName + "_unicode_ascii_result.txt");
+
+        if (Files.exists(tempFile)) {
+            Files.delete(tempFile);
+            log("Удален временный файл: " + tempFile.getFileName());
+        }
+    }
+
     private Path createResultDir(Path parentDir) throws IOException {
         Path resultDir = parentDir.resolve(RESULT_DIR);
         if (!Files.exists(resultDir)) {
             Files.createDirectories(resultDir);
-            log("Создана директория: " + resultDir);
         }
         return resultDir;
     }
 
-    private PrintWriter setupLogger() throws IOException {
-        Path logDir = baseDir.resolve(RESULT_DIR);
-        Files.createDirectories(logDir);
-        Path logFile = logDir.resolve(LOG_FILE);
-        return new PrintWriter(
-                new FileWriter(logFile.toFile(), true), true);
+    private void setupLogger() throws IOException {
+        if (logger == null) {
+            Path logDir = baseDir.resolve(RESULT_DIR);
+            Files.createDirectories(logDir);
+            Path logFile = logDir.resolve(LOG_FILE);
+            logger = new PrintWriter(new FileWriter(logFile.toFile(), true), true);
+        }
     }
 
     private void log(String message) {
         String entry = "[" + LocalDateTime.now() + "] " + message;
-        logger.println(entry);
+        if (outputLogEnabled || message.contains("ОШИБКА")) {
+            try {
+                setupLogger(); // Создаем логгер, если он еще не создан
+                logger.println(entry);
+            } catch (IOException e) {
+                System.err.println("Не удалось записать в лог: " + e.getMessage());
+            }
+        }
         System.out.println(entry);
     }
 
@@ -122,6 +152,4 @@ public class FileProcessor implements AutoCloseable {
     private boolean isPumlFile(Path path) {
         return path.toString().toLowerCase().endsWith(".puml");
     }
-
-
 }
